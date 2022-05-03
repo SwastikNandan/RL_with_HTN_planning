@@ -14,8 +14,11 @@
     <arg name="vehicle" default="iris"/>
     <arg name="world" default="worlds/empty_world.world"/>
     <arg name="sdf" default="$(find mavlink_sitl_gazebo)/models/$(arg vehicle)/$(arg vehicle).sdf"/>
+    <arg name="ID" default="1"/>
     <env name="PX4_SIM_MODEL" value="$(arg vehicle)" />
     <env name="PX4_ESTIMATOR" value="$(arg est)" />
+    <arg name="mavlink_udp_port" default="14560"/>
+    <arg name="mavlink_tcp_port" default="4560"/>
 
     <!-- gazebo configs -->
     <arg name="gui" default="true"/>
@@ -25,21 +28,27 @@
     <arg name="respawn_gazebo" default="false"/>
     <!-- PX4 configs -->
     <arg name="interactive" default="true"/>
+
+    <!-- generate sdf vehicle model -->
+    <arg name="cmd" default="xmlstarlet ed -d '//plugin[@name=&quot;mavlink_interface&quot;]/mavlink_tcp_port' -s '//plugin[@name=&quot;mavlink_interface&quot;]' -t elem -n mavlink_tcp_port -v $(arg mavlink_tcp_port) $(find px4)/Tools/sitl_gazebo/models/$(arg vehicle)/$(arg vehicle).sdf"/>
+    <param command="$(arg cmd)" name="model_description"/>
+
     <!-- PX4 SITL -->
-    <arg unless="$(arg interactive)" name="px4_command_arg1" value="-d"/>
-    <arg     if="$(arg interactive)" name="px4_command_arg1" value=""/>
-    <node name="sitl" pkg="px4" type="px4" output="screen"
-        args="$(find px4)/build/px4_sitl_default/etc -s etc/init.d-posix/rcS $(arg px4_command_arg1)" required="true"/>
+    <arg unless="$(arg interactive)" name="px4_command_arg1" value=""/>
+    <arg     if="$(arg interactive)" name="px4_command_arg1" value="-d"/>
+    <node name="sitl_$(arg ID)" pkg="px4" type="px4" output="screen" args="$(find px4)/build/px4_sitl_default/etc -s etc/init.d-posix/rcS -i $(arg ID) -w sitl_$(arg vehicle)_$(arg ID) $(arg px4_command_arg1)">
+    </node>
 
     <!-- Gazebo sim -->
-    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <!--include file="$(find gazebo_ros)/launch/empty_world.launch">
         <arg name="gui" value="$(arg gui)"/>
         <arg name="world_name" value="$(arg world)"/>
         <arg name="debug" value="$(arg debug)"/>
         <arg name="verbose" value="$(arg verbose)"/>
         <arg name="paused" value="$(arg paused)"/>
         <arg name="respawn_gazebo" value="$(arg respawn_gazebo)"/>
-    </include>
-    <!-- gazebo model -->
-    <node name="$(anon vehicle_spawn)" pkg="gazebo_ros" type="spawn_model" output="screen" args="-sdf -file $(arg sdf) -model $(arg vehicle) -x $(arg x) -y $(arg y) -z $(arg z) -R $(arg R) -P $(arg P) -Y $(arg Y)"/>
+    </include -->
+
+    <!-- spawn vehicle -->
+    <node name="$(arg vehicle)_$(arg ID)_spawn" output="screen" pkg="gazebo_ros" type="spawn_model" args="-sdf -param model_description -model $(arg vehicle)_$(arg ID) -x $(arg x) -y $(arg y) -z $(arg z) -R $(arg R) -P $(arg P) -Y $(arg Y)"/>
 </launch>
